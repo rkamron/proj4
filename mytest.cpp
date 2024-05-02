@@ -118,19 +118,21 @@ public:
     std::uniform_real_distribution<double> m_uniReal;//real uniform distribution
 
 };
-
+/*
 class Tester{
     bool testInsert(VacDB db) {
         int numPatients = 10
-        for (int i = 0; i < numPatients; i++) {
-
-        }
+        
     }
-};
+};*/
 
 unsigned int hashCode(const string str);
 
 string namesDB[6] = {"john", "serina", "mike", "celina", "alexander", "jessica"};
+
+string boolPrint(bool cond) {
+    return (cond) ? "PASSED" : "FALSE";
+}
 
 int main(){
     
@@ -140,6 +142,8 @@ int main(){
     Random RndQuantity(0,50);
     
     VacDB db(MINPRIME, hashCode, LINEAR);
+
+    bool insertTest = true;
     
     for (int i = 0; i< 20; i++){
         // generating random data
@@ -152,8 +156,12 @@ int main(){
 
     cout << "TESTING INSERTS\n";
     {
-        
+
     }
+
+    cout << "########## TEST RESULTS ##########\n"
+        << "# Insert Tests:\t" << boolPrint(insertTest) << "\n"
+        << "##################################\n";
     return 0;
 }
 

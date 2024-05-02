@@ -1,7 +1,6 @@
 // CMSC 341 - Spring 2024 - Project 4
 
 /* shit to do
- - when size isnt a prime in constructor
  - 
 
 */
@@ -67,21 +66,20 @@ bool VacDB::insert(Patient patient){
             }
             
             m_currentTable[index] = newPatient;
-            cout << "inserted: " << index << patient.m_name << patient.m_serial << "\n";
 
         }
         else if (m_currProbing == QUADRATIC) {
             int i = 0;
-            while (m_currentTable[index]) {
-                index += i*i;
+            while (m_currentTable[index] != nullptr) {
+                index = (index < m_currentCap - 1) ? index + (i*i) : 0;
                 i++;
             }
+            m_currentTable[index] = newPatient;
         }
         else if (m_currProbing == DOUBLEHASH) {
             int i = 0;
             while (m_currentTable[index]) {
                 int newIndex = ((m_hash(patient.m_name) % m_currentCap) + i * (11 - (m_hash(patient.m_name)) % 11)) % m_currentSize;
-                cout << newIndex << "\n";
                 i++;
             }
 
@@ -91,7 +89,6 @@ bool VacDB::insert(Patient patient){
     }
     m_currentSize++;
 
-    cout << "Loading Factor: " << (float)m_currentSize / (float)m_currentCap << "\n";
 
     // checking Load Factor
     if (((float)m_currentSize / (float)m_currentCap) > 0.50) {
@@ -113,29 +110,9 @@ bool VacDB::insert(Patient patient){
 // Preconditions:   old Table and variables must already be copied over
 //                  current table and variables must be ready
 void VacDB::reHash() {
-    /*
-    cout << "REHASHING\n";
-    
-    m_transferIndex = 0;
-    
-    int quarter = m_oldCap / 4;
-    for (int i = 0; i < 4; i++) {
-        for (int j = m_transferIndex; j < i + m_oldCap/4; j++) {
-            
-            if (m_oldTable[j] != nullptr) {
-                insert(*m_oldTable[j]);
-                cout << "transfered " << m_oldTable[j]->m_serial << "\n";
-            }
-            
-            m_transferIndex++;
-        }
-    }
-
-    cout << "rehashed: " << m_transferIndex << "/" << m_currentCap;
-    */
-
     m_transferIndex = 0;
 
+    
     for (int i = 0; i < 4; i++) {
         int quarter = m_transferIndex + (m_oldCap / 4);
         while (m_transferIndex < quarter) {
@@ -151,8 +128,6 @@ void VacDB::reHash() {
         m_transferIndex++;
     }
 
-    cout << m_transferIndex << "\n";
-
 }
 
 
@@ -165,24 +140,14 @@ void VacDB::copyCurrent() {
 }
 
 
-
-
-
-
-
-
-
-
 bool VacDB::remove(Patient patient){
     int index = m_hash(patient.m_name) % m_currentCap;
 
-
+    return false;
 }
 
 const Patient VacDB::getPatient(string name, int serial) const{
     unsigned int index = m_hash(name) % m_currentCap;
-    cout << m_currentTable[index] << index << "\n";
-    //cout << "Name: " << name << ", Index:\t" << index << "\n";
     int patSerial = m_currentTable[index]->m_serial;
     
     // else we have to continue searching through the hash table
@@ -193,18 +158,33 @@ const Patient VacDB::getPatient(string name, int serial) const{
                 if (m_currentTable[index]->getSerial() == serial) {
                     flag = false;
                 } 
-                else index++;
+                else {
+                    index = (index < m_currentCap - 1) ? index + 1 : 0;
+                }
             } 
             else {
-                index++;
+                index = (index < m_currentCap - 1) ? index + 1 : 0;
             }
         }
     }
     else if (m_currProbing == QUADRATIC) {
         int i = 0;
-        while (m_currentTable[index]->getSerial() != serial) {
-            index += i*i;
-            i++;
+        bool flag = true;
+        while (flag) {
+            cout << "quad index: " << index << "\n";
+            if (m_currentTable[index]) {
+                if (m_currentTable[index]->getSerial() == serial) {
+                    flag = false;
+                }
+                else {
+                    index = (index < m_currentCap - 1) ? index + (i*i) : 0;
+                    i++;
+                }
+            }
+            else {
+                index = (index < m_currentCap - 1) ? index + (i*i) : 0;
+                i++;
+            }
         }
     }
     /*
