@@ -151,7 +151,7 @@ int main(){
     for (int i = 0; i < dataList.size(); i++) {
         cout << i << dataList.at(i).getKey() << "\n";
     }
-    vacdb.dump();
+    vacdb.dump(); 
     
     // checking whether all data are inserted
     for (vector<Patient>::iterator it = dataList.begin(); it != dataList.end(); it++){

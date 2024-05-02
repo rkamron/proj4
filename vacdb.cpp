@@ -16,7 +16,7 @@ VacDB::VacDB(int size, hash_fn hash, prob_t probing = DEFPOLCY){
     m_hash = hash;
     m_currProbing = probing;
 
-    m_currentTable = new Patient * [m_currentCap];
+    m_currentTable = new Patient * [m_currentCap] ();
     m_oldTable = nullptr;
     
     m_currentSize = 0;
@@ -168,19 +168,25 @@ const Patient VacDB::getPatient(string name, int serial) const{
         }
     }
     else if (m_currProbing == QUADRATIC) {
-        int i = 0;
-        bool flag = true;
+        int i = 0; // quadratic multiplier 
+        bool flag = true; // controls while loop
+
+        // loops through the list until it reaches the right index
         while (flag) {
-            cout << "quad index: " << index << "\n";
+            // if m_currentTable[index] exists
             if (m_currentTable[index]) {
+                // if a patient exists, it checks the serial
                 if (m_currentTable[index]->getSerial() == serial) {
                     flag = false;
                 }
+                
                 else {
-                    index = (index < m_currentCap - 1) ? index + (i*i) : 0;
+                    index = (index > m_currentCap - 1) ? index + (i*i) : 0;
+                    cout << "qaud " << index << "\n";
                     i++;
                 }
             }
+            // else patient at index doesnt exists and we iterate
             else {
                 index = (index < m_currentCap - 1) ? index + (i*i) : 0;
                 i++;
