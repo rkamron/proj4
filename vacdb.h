@@ -105,5 +105,6 @@ class VacDB{
 
    void copyCurrent(); // copies everything in current table to old table
    void reHash();
+   void clear(Patient ** table, int size); // deallocates all memory in table
 };
 #endif

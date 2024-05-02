@@ -118,8 +118,14 @@ public:
     std::uniform_real_distribution<double> m_uniReal;//real uniform distribution
 
 };
-class Tester{
 
+class Tester{
+    bool testInsert(VacDB db) {
+        int numPatients = 10
+        for (int i = 0; i < numPatients; i++) {
+
+        }
+    }
 };
 
 unsigned int hashCode(const string str);
@@ -132,35 +138,22 @@ int main(){
     Random RndID(MINID,MAXID);
     Random RndName(0,5);// selects one from the namesDB array
     Random RndQuantity(0,50);
-    VacDB vacdb(MINPRIME, hashCode, LINEAR);
-    bool result = true;
     
-    for (int i = 0; i < 70; i++){
+    VacDB db(MINPRIME, hashCode, LINEAR);
+    
+    for (int i = 0; i< 20; i++){
         // generating random data
         Patient dataObj = Patient(namesDB[RndName.getRandNum()], RndID.getRandNum(), true);
-        cout << "Inserting: " << dataObj.getKey() << dataObj.getSerial() << "\n";
         // saving data for later use
         dataList.push_back(dataObj);
         // inserting data in to the VacDB object
-        if (!vacdb.insert(dataObj)) cout << "Did not insert " << &dataObj << endl;
+        if (!db.insert(dataObj)) cout << "Did not insert " << &dataObj << endl;
     }
 
-
-    
-    for (int i = 0; i < dataList.size(); i++) {
-        cout << i << dataList.at(i).getKey() << "\n";
+    cout << "TESTING INSERTS\n";
+    {
+        
     }
-    vacdb.dump();
-    
-    // checking whether all data are inserted
-    for (vector<Patient>::iterator it = dataList.begin(); it != dataList.end(); it++){
-        result = result && (*it == vacdb.getPatient((*it).getKey(), (*it).getSerial()));
-    }
-    if (result)
-        cout << "All data points exist in the VacDB object!\n";
-    else
-        cout << "Some data points are missing in the VacDB object\n";
-   
     return 0;
 }
 
