@@ -118,15 +118,45 @@ public:
     std::uniform_real_distribution<double> m_uniReal;//real uniform distribution
 
 };
-/*
-class Tester{
-    bool testInsert(VacDB db) {
-        int numPatients = 10
-        
-    }
-};*/
 
 unsigned int hashCode(const string str);
+
+class Tester{
+    public:
+    bool testLinearNoncolidingInsert(VacDB db, vector<Patient> dataList) {
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
+
+        db.insert(data1);
+        dataList.push_back(data1);
+        db.insert(data2);
+        dataList.push_back(data2);
+        db.insert(data3);
+        dataList.push_back(data3);
+        db.insert(data4);
+        dataList.push_back(data4);
+
+        bool result = true;
+        if (db.m_currentTable[hashCode(data1.getKey()) % db.m_currentCap]->m_serial != 2500) {
+            result = false;
+        }
+        else if (db.m_currentTable[hashCode(data2.getKey()) % db.m_currentCap]->m_serial != 3500) {
+            result = false;
+        }
+        else if (db.m_currentTable[hashCode(data3.getKey()) % db.m_currentCap]->m_serial != 2000) {
+            result = false;
+        }
+        else if (db.m_currentTable[hashCode(data4.getKey()) % db.m_currentCap]->m_serial != 3000) {
+            result = false;
+        }
+        
+        return result;
+    }
+};
+
+
 
 string namesDB[6] = {"john", "serina", "mike", "celina", "alexander", "jessica"};
 
@@ -140,10 +170,11 @@ int main(){
     Random RndID(MINID,MAXID);
     Random RndName(0,5);// selects one from the namesDB array
     Random RndQuantity(0,50);
+    Tester test;
     
     VacDB db(MINPRIME, hashCode, LINEAR);
 
-    bool insertTest = true;
+    bool insertLinearNoncoliding = true;
     
     for (int i = 0; i< 20; i++){
         // generating random data
@@ -156,11 +187,16 @@ int main(){
 
     cout << "TESTING INSERTS\n";
     {
+        cout << "LINEAR INSERTS\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+        vector<Patient> dataList;
 
+        insertLinearNoncoliding = test.testLinearNoncolidingInsert(db, dataList);
+        
     }
 
     cout << "########## TEST RESULTS ##########\n"
-        << "# Insert Tests:\t" << boolPrint(insertTest) << "\n"
+        << "# Insert Tests:\t" << boolPrint(insertLinearNoncoliding) << "\n"
         << "##################################\n";
     return 0;
 }

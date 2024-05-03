@@ -1,8 +1,8 @@
 // CMSC 341 - Spring 2024 - Project 4
 
 /* vaprosi
- - getPatient() case when the patient doesnt exist.
- - how to test if theyre in the right buckets
+ - for updateSerialNumber(), what if another Patient has that same serial number 
+ - 
 
 */
 
@@ -50,6 +50,8 @@ void VacDB::changeProbPolicy(prob_t policy){
     
 }
 
+// insert(Patient patient)
+// Calculates 
 bool VacDB::insert(Patient patient){
     unsigned int index = m_hash(patient.m_name) % m_currentCap;
 
@@ -93,7 +95,7 @@ bool VacDB::insert(Patient patient){
 
 
     // checking Load Factor
-    if (((float)m_currentSize / (float)m_currentCap) > 0.50) {
+    if (lambda() > 0.50 || deletedRatio() > 0.80) {
         copyCurrent(); // copies all current variable to old
         m_currentCap = findNextPrime(m_oldSize * 4);
         
@@ -132,7 +134,8 @@ void VacDB::reHash() {
 
 }
 
-
+// copyCurrent() helper function
+// copies all the data in current variables to old variables
 void VacDB::copyCurrent() {
     m_oldTable = m_currentTable;
     m_oldCap = m_currentCap;
@@ -153,10 +156,12 @@ bool VacDB::remove(Patient patient){
 const Patient VacDB::getPatient(string name, int serial) const{
     unsigned int index = m_hash(name) % m_currentCap;
     
+    
     // else we have to continue searching through the hash table
     if (m_currProbing == LINEAR) {
         bool flag = true;
-        while (flag) {
+        int iter = 0;
+        while (flag && iter < m_currentCap) {
             if (m_currentTable[index]) {
                 if (m_currentTable[index]->getSerial() == serial) {
                     flag = false;
@@ -168,14 +173,17 @@ const Patient VacDB::getPatient(string name, int serial) const{
             else {
                 index = (index + 1) % m_currentCap;
             }
+
+            iter++;
         }
     }
     else if (m_currProbing == QUADRATIC) {
         int i = 0; // quadratic multiplier 
         bool flag = true; // controls while loop
 
+        int iter = 0;
         // loops through the list until it reaches the right index
-        while (flag) {
+        while (flag && iter < m_currentCap) {
             // if m_currentTable[index] exists
             if (m_currentTable[index]) {
                 // if a patient exists, it checks the serial
@@ -193,16 +201,35 @@ const Patient VacDB::getPatient(string name, int serial) const{
                 index = (index + (i*i)) % m_currentCap;
                 i++;
             }
+            iter++;
         }
     }
     
     else if (m_currProbing == DOUBLEHASH) {
         int i = 0;
-        while (m_currentTable[index]->getSerial() != serial) {
-            Patient *patient = m_currentTable[index];
-            int newIndex = ((m_hash(patient->m_name) % m_currentCap) + i * (11 - (m_hash(patient->m_name)) % 11)) % m_currentSize;
-            cout << newIndex << "\n";
-            i++;
+        bool flag = true;
+        int iter = 0;
+        while (flag && iter < m_currentCap) {
+            // if m_currentTable[index] exists
+            if (m_currentTable[index]) {
+                // if a patient exists, it checks the serial
+                if (m_currentTable[index]->getSerial() == serial) {
+                    flag = false;
+                } 
+                
+                else {
+                    int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
+                    i++;
+                    index = newIndex;
+                }
+            }
+            // else patient at index doesnt exists and we iterate
+            else {
+                int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
+                i++;
+                index = newIndex;
+            }
+            iter++;
         }
 
 
@@ -213,19 +240,117 @@ const Patient VacDB::getPatient(string name, int serial) const{
         Patient empty;
         return empty;
     }
+
     return *m_currentTable[index];
 }
 
 bool VacDB::updateSerialNumber(Patient patient, int serial){
+    unsigned int index = m_hash(patient.getKey()) % m_currentCap;
     
+    
+    // else we have to continue searching through the hash table
+    if (m_currProbing == LINEAR) {
+        bool flag = true;
+        int iter = 0;
+        while (flag && iter < m_currentCap) {
+            if (m_currentTable[index]) {
+                if (*m_currentTable[index] == patient) {
+                    flag = false;
+                    m_currentTable[index]->setSerial(serial);
+                }
+                else {
+                    index = (index + 1) % m_currentCap;
+                }
+            } 
+            else {
+                index = (index + 1) % m_currentCap;
+            }
+
+            iter++;
+            
+        }
+        if (iter >= m_currentCap) return false;
+    }
+    else if (m_currProbing == QUADRATIC) {
+        int i = 0; // quadratic multiplier 
+        bool flag = true; // controls while loop
+
+        int iter = 0;
+        // loops through the list until it reaches the right index
+        while (flag && iter < m_currentCap) {
+            // if m_currentTable[index] exists
+            if (m_currentTable[index]) {
+                // if a patient exists, it checks the serial
+                if (*m_currentTable[index] == patient) {
+                    flag = false;
+                    m_currentTable[index]->setSerial(serial);
+                } 
+                
+                else {
+                    index = (index + (i*i)) % m_currentCap;
+                    i++;
+                }
+            }
+            // else patient at index doesnt exists and we iterate
+            else {
+                index = (index + (i*i)) % m_currentCap;
+                i++;
+            }
+            iter++;
+        }
+
+        if (iter >= m_currentCap) return false;
+    }
+    
+    else if (m_currProbing == DOUBLEHASH) {
+        int i = 0;
+        bool flag = true;
+        int iter = 0;
+        while (flag && iter < m_currentCap) {
+            // if m_currentTable[index] exists
+            if (m_currentTable[index]) {
+                // if a patient exists, it checks the serial
+                if (*m_currentTable[index] == patient) {
+                    flag = false;
+
+                    m_currentTable[index]->setSerial(serial);
+                } 
+                
+                else {
+                    int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
+                    i++;
+                    index = newIndex;
+                }
+            }
+            // else patient at index doesnt exists and we iterate
+            else {
+                int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
+                i++;
+                index = newIndex;
+            }
+            iter++;
+        }
+
+        if (iter >= m_currentCap) return false;
+    }
+    
+
+    return true;
 }
 
+// lambda()
+// returns the size to cap ratio
 float VacDB::lambda() const {
-    
+    return ((float)m_currentSize / (float)m_currentCap);
 }
 
+// deletedRatio()
+// returns the deleted to size ratio
 float VacDB::deletedRatio() const {
-    
+    if (m_currentSize == 0) {
+        return 0.0;
+    }
+    return ((float) m_currNumDeleted / (float) m_currentSize);
 }
 
 void VacDB::dump() const {
