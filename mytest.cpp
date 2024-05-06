@@ -137,7 +137,7 @@ class Tester{
         dataList.push_back(data3);
         db.insert(data4);
         dataList.push_back(data4);
-
+        //db.dump();
         bool result = true;
         if (db.m_currentTable[hashCode(data1.getKey()) % db.m_currentCap]->m_serial != 2500) {
             result = false;
@@ -151,6 +151,7 @@ class Tester{
         else if (db.m_currentTable[hashCode(data4.getKey()) % db.m_currentCap]->m_serial != 3000) {
             result = false;
         }
+        
         
         return result;
     }
@@ -166,24 +167,13 @@ string boolPrint(bool cond) {
 
 int main(){
     
-    vector<Patient> dataList;
     Random RndID(MINID,MAXID);
     Random RndName(0,5);// selects one from the namesDB array
     Random RndQuantity(0,50);
     Tester test;
     
-    VacDB db(MINPRIME, hashCode, LINEAR);
 
     bool insertLinearNoncoliding = true;
-    
-    for (int i = 0; i< 20; i++){
-        // generating random data
-        Patient dataObj = Patient(namesDB[RndName.getRandNum()], RndID.getRandNum(), true);
-        // saving data for later use
-        dataList.push_back(dataObj);
-        // inserting data in to the VacDB object
-        if (!db.insert(dataObj)) cout << "Did not insert " << &dataObj << endl;
-    }
 
     cout << "TESTING INSERTS\n";
     {

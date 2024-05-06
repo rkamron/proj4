@@ -1,7 +1,7 @@
 // CMSC 341 - Spring 2024 - Project 4
 
 /* vaprosi
- - for updateSerialNumber(), what if another Patient has that same serial number 
+ - prover esli destructor rabotayet 
  - 
 
 */
@@ -16,6 +16,7 @@ VacDB::VacDB(int size, hash_fn hash, prob_t probing = DEFPOLCY){
 
     m_hash = hash;
     m_currProbing = probing;
+    m_newPolicy = m_currProbing;
 
     m_currentTable = new Patient * [m_currentCap] ();
     m_oldTable = nullptr;
@@ -28,13 +29,14 @@ VacDB::VacDB(int size, hash_fn hash, prob_t probing = DEFPOLCY){
 }
 
 VacDB::~VacDB(){
-    clear(m_currentTable, m_currentCap);
+    if (m_currentSize != 0) 
+        clear(m_currentTable, m_currentCap);
 }
 
 void VacDB::clear(Patient ** table, int size) {
     // Deallocate objects
     for (int i = 0; i < size; ++i) {
-        if (table[i] != nullptr) {
+        if (table[i]) {
             delete table[i];
             table[i] = nullptr; // Set to null to avoid dangling pointers (optional)
         }
@@ -45,9 +47,10 @@ void VacDB::clear(Patient ** table, int size) {
     table = nullptr; // Set to null to avoid dangling pointers (optional)
 }
 
-
+// changeProbPolicy(prob_t policy)
+// Stores the new policy and implements it next time the table is reHashed
 void VacDB::changeProbPolicy(prob_t policy){
-    
+    m_newPolicy = policy;
 }
 
 // insert(Patient patient)
@@ -59,9 +62,11 @@ bool VacDB::insert(Patient patient){
 
     Patient *newPatient = new Patient(patient);
 
+    // if the index is free, we insert the newPatient
     if (m_currentTable[index] == nullptr) {
         m_currentTable[index] = newPatient;
     }
+    // else there is a collision and it needs to probe
     else {
         if (m_currProbing == LINEAR) {
             while (m_currentTable[index] != nullptr) {
@@ -115,6 +120,9 @@ bool VacDB::insert(Patient patient){
 //                  current table and variables must be ready
 void VacDB::reHash() {
     m_transferIndex = 0;
+
+    // checks if there is a new probing policy
+    m_currProbing = (m_currProbing != m_newPolicy) ? m_newPolicy : m_currProbing;
 
     
     for (int i = 0; i < 4; i++) {
