@@ -1,50 +1,58 @@
 // CMSC 341 - Spring 2024 - Project 4
-
-/* vaprosi
- - prover esli destructor rabotayet 
- - 
-
-*/
-
 #include "vacdb.h"
+
+// VacDB(int size, hash_fn hash, prob_t probing = DEFPOLCY)
+// Constructor
 VacDB::VacDB(int size, hash_fn hash, prob_t probing = DEFPOLCY){
     
     // conditions check if size is valid
-    if (MINPRIME >= size) m_currentCap = MINPRIME;
+    if (MINPRIME >= size) m_currentCap = MINPRIME; 
     else if (MAXPRIME <= size) m_currentCap = MAXPRIME;
     else m_currentCap = (isPrime(size)) ? size : findNextPrime(size);
 
+    m_currentTable = new Patient * [m_currentCap] ();
     m_hash = hash;
     m_currProbing = probing;
     m_newPolicy = m_currProbing;
-
-    m_currentTable = new Patient * [m_currentCap] ();
-    m_oldTable = nullptr;
-    
+    m_currProbing = probing;
+    m_newPolicy = m_currProbing; 
     m_currentSize = 0;
     m_currNumDeleted = 0;
     
+    m_oldTable = nullptr;
     m_oldCap = m_oldSize = m_oldNumDeleted = 0;
 
 }
 
+// ~VacDB() destructor
+// calls clear() helper function
 VacDB::~VacDB(){
+    // check if there is anything is it
     if (m_currentSize != 0) 
         clear(m_currentTable, m_currentCap);
+    
+    m_currentTable = nullptr;
+    m_currentSize = 0;
+    m_currNumDeleted = 0;
+    m_currentCap = 0;
+    
 }
 
+// clear(Patient ** table, int size)
+// Helper function that deallocates any memory in given table
 void VacDB::clear(Patient ** table, int size) {
+    
     // Deallocate objects
     for (int i = 0; i < size; ++i) {
         if (table[i]) {
             delete table[i];
-            table[i] = nullptr; // Set to null to avoid dangling pointers (optional)
+            table[i] = nullptr; 
         }
     }
 
     // Deallocate pointer array
-    delete[] table;
-    table = nullptr; // Set to null to avoid dangling pointers (optional)
+    delete [] table;
+    table = nullptr; 
 }
 
 // changeProbPolicy(prob_t policy)
@@ -54,8 +62,103 @@ void VacDB::changeProbPolicy(prob_t policy){
 }
 
 // insert(Patient patient)
-// Calculates 
+// Calculates the index using hash function and probes if there is a collision
 bool VacDB::insert(Patient patient){
+    unsigned int index = m_hash(patient.m_name) % m_currentCap;
+
+    Patient *newPatient = new Patient(patient);
+
+    // loop until m_currentTable[index] == nullptr 
+    int iter = 0; // keeps track of the times looped and used for probing
+    while (m_currentTable[index]) {
+        if (m_currProbing == LINEAR) {
+            
+            // tests if the patient is already in the hash table
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) return false;
+            
+            index = (index + 1) % m_currentCap;
+
+        }
+        else if (m_currProbing == QUADRATIC) {
+
+            // tests if the patient is already in the hash table
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) return false;
+            
+            index = (index + (iter*iter)) % m_currentCap;
+
+        }
+        else if (m_currProbing == DOUBLEHASH) {
+
+            // tests if the patient is already in the hash table
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) return false;
+            
+            index = ((m_hash(patient.m_name) % m_currentCap) + iter * (11 - (m_hash(patient.m_name) % 11))) % m_currentCap;
+
+        }
+        
+        iter++;
+    }
+    
+    m_currentTable[index] = newPatient;
+
+
+    /*// if the index is free, we insert the newPatient
+    if (m_currentTable[index] == nullptr) {
+        m_currentTable[index] = newPatient;
+
+    }
+    // else there is a collision and it needs to probe
+    else {
+        if (m_currProbing == LINEAR) {
+            while (m_currentTable[index] != nullptr) {
+                index = (index +  1) % m_currentCap;
+            }
+            
+            m_currentTable[index] = newPatient;
+
+        }
+        else if (m_currProbing == QUADRATIC) {
+            int i = 0;
+            while (m_currentTable[index] != nullptr) {
+                index = (index + (i*i)) % m_currentCap;
+                i++;
+            }
+            m_currentTable[index] = newPatient;
+        }
+        else if (m_currProbing == DOUBLEHASH) {
+            int i = 0;
+            while (m_currentTable[index]) {
+                int newIndex = ((m_hash(patient.m_name) % m_currentCap) + i * (11 - (m_hash(patient.m_name) % 11))) % m_currentCap;
+                i++;
+                index = newIndex;
+            }
+
+            m_currentTable[index] = newPatient;
+
+        }
+    }*/
+    m_currentSize++;
+
+
+    // checking Load Factor
+    if (lambda() > 0.50 || deletedRatio() > 0.80) {
+        copyCurrent(); // copies all current variable to old
+        m_currentCap = findNextPrime(m_oldSize * 4);
+        
+        m_currentTable = new Patient * [m_currentCap];
+        m_currentSize = 0;
+
+
+        reHash();
+    }
+
+    return true;
+
+}
+
+// 
+bool VacDB::reHashInsert(Patient patient){
+    //cout << "inserting " << patient.getKey() << "\n";
     unsigned int index = m_hash(patient.m_name) % m_currentCap;
 
     
@@ -66,6 +169,7 @@ bool VacDB::insert(Patient patient){
     if (m_currentTable[index] == nullptr) {
         m_currentTable[index] = newPatient;
     }
+
     // else there is a collision and it needs to probe
     else {
         if (m_currProbing == LINEAR) {
@@ -98,21 +202,7 @@ bool VacDB::insert(Patient patient){
     }
     m_currentSize++;
 
-
-    // checking Load Factor
-    if (lambda() > 0.50 || deletedRatio() > 0.80) {
-        copyCurrent(); // copies all current variable to old
-        m_currentCap = findNextPrime(m_oldSize * 4);
-        
-        m_currentTable = new Patient * [m_currentCap];
-        m_currentSize = 0;
-
-
-        reHash();
-    }
-
     return true;
-
 }
 
 // reHash()
@@ -129,16 +219,19 @@ void VacDB::reHash() {
         int quarter = m_transferIndex + (m_oldCap / 4);
         while (m_transferIndex < quarter) {
             
-            if (m_oldTable[m_transferIndex] != nullptr) insert(*m_oldTable[m_transferIndex]);
+            if (m_oldTable[m_transferIndex] != nullptr) reHashInsert(*m_oldTable[m_transferIndex]);
 
             m_transferIndex++;
         }
     }
 
     while (m_transferIndex < m_oldCap) {
-        if (m_oldTable[m_transferIndex] != nullptr) insert(*m_oldTable[m_transferIndex]);
+        if (m_oldTable[m_transferIndex] != nullptr) reHashInsert(*m_oldTable[m_transferIndex]);
         m_transferIndex++;
     }
+
+    clear(m_oldTable, m_oldSize);
+    m_oldTable = nullptr;
 
 }
 
@@ -152,7 +245,8 @@ void VacDB::copyCurrent() {
     m_oldProbing = m_currProbing;
 }
 
-
+// remove(Patient patient)
+// deletes
 bool VacDB::remove(Patient patient){
     unsigned int index = m_hash(patient.m_name) % m_currentCap;
     int iter = 0;
@@ -172,9 +266,7 @@ bool VacDB::remove(Patient patient){
                 m_currentTable[index]->setUsed(false);
                 m_currNumDeleted++;
 
-                // check
-                cout << "lambda: " << lambda() << " deletedRatio: " << deletedRatio() << "\n";
-                
+                // check                 
                 if (lambda() > 0.50 || deletedRatio() > 0.80) {
                     copyCurrent(); // copies all current variable to old
                     m_currentCap = findNextPrime((m_oldSize - m_oldNumDeleted) * 4);
@@ -250,8 +342,10 @@ bool VacDB::updateSerialNumber(Patient patient, int serial){
     unsigned int index = m_hash(patient.m_name) % m_currentCap;
     int iter = 0;
 
-    // Iterates 
+    // Iterates a max of m_currentCap times
     while (iter < m_currentCap) {
+
+        // if there is a Patient
         if (m_currentTable[index]) {
             if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) {
                 
@@ -268,6 +362,8 @@ bool VacDB::updateSerialNumber(Patient patient, int serial){
                 index = ((m_hash(patient.getKey()) % m_currentCap) + iter * (11 - (m_hash(patient.getKey()) % 11))) % m_currentCap;
             }
         }
+
+        // else m_currentTable[index] is nullptr so the patient doesnt exist
         else {
             return false;
         }
@@ -288,12 +384,10 @@ float VacDB::lambda() const {
 // deletedRatio()
 // returns the deleted to size ratio
 float VacDB::deletedRatio() const {
-    if (m_currentSize == 0) {
-        return 0.0;
-    }
-    return ((float) m_currNumDeleted / (float) m_currentSize);
+    return (m_currentSize == 0) ? 0.0 : ((float) m_currNumDeleted / (float) m_currentSize);
 }
 
+// dump()
 void VacDB::dump() const {
     cout << "Dump for the current table: " << endl;
     if (m_currentTable != nullptr)
@@ -307,6 +401,7 @@ void VacDB::dump() const {
         }
 }
 
+// isPrime(int number)
 bool VacDB::isPrime(int number){
     bool result = true;
     for (int i = 2; i <= number / 2; ++i) {
@@ -318,10 +413,12 @@ bool VacDB::isPrime(int number){
     return result;
 }
 
+// findNextPrime(int current)
 int VacDB::findNextPrime(int current){
     //we always stay within the range [MINPRIME-MAXPRIME]
     //the smallest prime starts at MINPRIME
     if (current < MINPRIME) current = MINPRIME-1;
+    
     for (int i=current; i<MAXPRIME; i++) { 
         for (int j=2; j*j<=i; j++) {
             if (i % j == 0) 
@@ -331,6 +428,7 @@ int VacDB::findNextPrime(int current){
             }
         }
     }
+
     //if a user tries to go over MAXPRIME
     return MAXPRIME;
 }

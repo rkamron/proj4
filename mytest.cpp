@@ -179,6 +179,10 @@ int main(){
     bool getPatientNormal = true;
     bool getPatientNormalColliding = true;
     bool removeNormal = true;
+    bool removeNormalColliding = true;
+    bool removeError = true;
+    bool rehashInsertion = true;
+    bool rehashRemove = true;
 
     cout << "TESTING INSERTS\n";
     {
@@ -260,6 +264,26 @@ int main(){
         Patient data2 = Patient("celina", 3500, true);
         Patient data3 = Patient("serina", 2000, true);
         Patient data4 = Patient("mike", 3000, true);
+        
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+
+        removeNormal = removeNormal && (db.remove(data1));
+        removeNormal = removeNormal && (db.remove(data2));
+        removeNormal = removeNormal && (db.remove(data3));
+        removeNormal = removeNormal && (db.remove(data4));
+    }
+
+    {
+        cout << "remove Normal Case, with colliding keys\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
         Patient data5 = Patient("serina", 2001, true);
         Patient data6 = Patient("mike", 3001, true);
         Patient data7 = Patient("serina", 2002, true);
@@ -274,17 +298,84 @@ int main(){
         db.insert(data7);
         db.insert(data8);
 
-        removeNormal = removeNormal && (db.remove(data1));
-        removeNormal = removeNormal && (db.remove(data2));
-        removeNormal = removeNormal && (db.remove(data3));
-        removeNormal = removeNormal && (db.remove(data4));
-        removeNormal = removeNormal && (db.remove(data5));
-        removeNormal = removeNormal && (db.remove(data6));
-        removeNormal = removeNormal && (db.remove(data7));
-
-
-        db.dump();
+        removeNormalColliding = removeNormalColliding && (db.remove(data1));
+        removeNormalColliding = removeNormalColliding && (db.remove(data2));
+        removeNormalColliding = removeNormalColliding && (db.remove(data3));
+        removeNormalColliding = removeNormalColliding && (db.remove(data4));
+        removeNormalColliding = removeNormalColliding && (db.remove(data5));
+        removeNormalColliding = removeNormalColliding && (db.remove(data6));
+        removeNormalColliding = removeNormalColliding && (db.remove(data7));
     }
+
+    {
+        cout << "remove Error Case, with colliding keys\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
+        Patient data5 = Patient("serina", 2001, true);
+        Patient data6 = Patient("mike", 3001, true);
+        Patient data7 = Patient("serina", 2002, true);
+        Patient data8 = Patient("mike", 3002, true);
+        Patient errorPatient = Patient();
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+        db.insert(data5);
+        db.insert(data6);
+        db.insert(data7);
+        db.insert(data8);
+
+        removeError = removeError && !(db.remove(errorPatient));
+    }
+
+    cout << "TESTING REHASH\n";
+    {
+        cout << "reHash() from insert Tests:\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+        vector<Patient> dataList;
+
+        // loop that adds random Patients to VacDB
+        for (int i = 0; i < 70; i++){
+            // generating random data
+            Patient dataObj = Patient(namesDB[RndName.getRandNum()], RndID.getRandNum(), true);
+            // saving data for later use
+            dataList.push_back(dataObj);
+            // inserting data in to the VacDB object
+            rehashInsertion = db.insert(dataObj);
+        }
+
+        // checks if every patient is inserted
+        for (vector<Patient>::iterator it = dataList.begin(); it != dataList.end(); it++){
+            rehashInsertion = rehashInsertion && (*it == db.getPatient((*it).getKey(), (*it).getSerial()));
+        }
+    }
+
+    {
+        cout << "reHash() from removal Tests:\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+        vector<Patient> dataList;
+
+        // loop that adds random Patients to VacDB
+        for (int i = 0; i < 30; i++){
+            // generating random data
+            Patient dataObj = Patient(namesDB[RndName.getRandNum()], RndID.getRandNum(), true);
+            // saving data for later use
+            dataList.push_back(dataObj);
+            // inserting data in to the VacDB object
+            rehashRemove = db.insert(dataObj);
+        }
+
+        // checks if every patient is inserted
+        for (int i = 0; i < 25; i++) {
+            rehashRemove = rehashRemove && (db.remove(dataList.at(i)));
+        }
+    }
+
+
             
     cout << "#################### TEST RESULTS ####################\n"
         << "# Insert Tests:\t\t\t\t\t" << boolPrint(insertLinearNoncoliding) << "\n"
@@ -292,6 +383,11 @@ int main(){
         << "# getPatient() Normal Case, non-colliding:\t" << boolPrint(getPatientNormal) << "\n"
         << "# getPatient() Error Case, colliding:\t\t" << boolPrint(getPatientNormalColliding) << "\n"
         << "# remove() Normal Case, non-colliding:\t\t" << boolPrint(removeNormal) << "\n"
+        << "# remove() Normal Case, colliding:\t\t" << boolPrint(removeNormalColliding) << "\n"
+        << "# remove() Error Case, colliding:\t\t" << boolPrint(removeError) << "\n"
+        << "# reHash() rehash triggered with insert:\t" << boolPrint(rehashInsertion) << "\n"
+        << "# reHash() rehash triggered with remove:\t" << boolPrint(rehashRemove) << "\n"
+
         << "######################################################\n";
     return 0;
 }
