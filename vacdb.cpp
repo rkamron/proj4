@@ -87,7 +87,7 @@ bool VacDB::insert(Patient patient){
         else if (m_currProbing == DOUBLEHASH) {
             int i = 0;
             while (m_currentTable[index]) {
-                int newIndex = ((m_hash(patient.m_name) % m_currentCap) + i * (11 - (m_hash(patient.m_name)) % 11)) % m_currentSize;
+                int newIndex = ((m_hash(patient.m_name) % m_currentCap) + i * (11 - (m_hash(patient.m_name) % 11))) % m_currentCap;
                 i++;
                 index = newIndex;
             }
@@ -124,7 +124,7 @@ void VacDB::reHash() {
     // checks if there is a new probing policy
     m_currProbing = (m_currProbing != m_newPolicy) ? m_newPolicy : m_currProbing;
 
-    
+    // iterates four times, inserts a quarter at a time
     for (int i = 0; i < 4; i++) {
         int quarter = m_transferIndex + (m_oldCap / 4);
         while (m_transferIndex < quarter) {
@@ -154,8 +154,59 @@ void VacDB::copyCurrent() {
 
 
 bool VacDB::remove(Patient patient){
-    int index = m_hash(patient.m_name) % m_currentCap;
+    unsigned int index = m_hash(patient.m_name) % m_currentCap;
+    int iter = 0;
 
+    // Iterates 
+    while (iter < m_currentCap) {
+        if (m_currentTable[index]) {
+
+            // if table[index] matches the patient we're looking for
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) {
+                
+                // if Patient is already marked as deleted
+                if (!(m_currentTable[index]->m_used))
+                    return false;
+                
+                // else we set it as deleted
+                m_currentTable[index]->setUsed(false);
+                m_currNumDeleted++;
+
+                // check
+                cout << "lambda: " << lambda() << " deletedRatio: " << deletedRatio() << "\n";
+                
+                if (lambda() > 0.50 || deletedRatio() > 0.80) {
+                    copyCurrent(); // copies all current variable to old
+                    m_currentCap = findNextPrime((m_oldSize - m_oldNumDeleted) * 4);
+        
+                    m_currentTable = new Patient * [m_currentCap];
+                    m_currentSize = 0;
+
+                    reHash();
+                }
+
+                return true;
+            }
+
+            // if table[index] doesnt match then we probe
+            else if (m_currProbing == LINEAR) {
+                index = (index + 1) % m_currentCap;
+            }
+            else if (m_currProbing == QUADRATIC) {
+                index = (index + (iter * iter)) % m_currentCap;
+            }
+            else if (m_currProbing == DOUBLEHASH) {
+                index = ((m_hash(patient.getKey()) % m_currentCap) + iter * (11 - (m_hash(patient.getKey()) % 11))) % m_currentCap;
+            }
+        }
+        // patient doesnt exist
+        else {
+            return false;
+        }
+        iter++;
+    }
+
+    // Doesnt exist
     return false;
 }
 
@@ -163,187 +214,69 @@ bool VacDB::remove(Patient patient){
 // based on the type of probing, it takes hashes through the hash table until it finds the hash
 const Patient VacDB::getPatient(string name, int serial) const{
     unsigned int index = m_hash(name) % m_currentCap;
-    
-    
-    // else we have to continue searching through the hash table
-    if (m_currProbing == LINEAR) {
-        bool flag = true;
-        int iter = 0;
-        while (flag && iter < m_currentCap) {
-            if (m_currentTable[index]) {
-                if (m_currentTable[index]->getSerial() == serial) {
-                    flag = false;
-                } 
-                else {
-                    index = (index + 1) % m_currentCap;
-                }
-            } 
-            else {
+    int iter = 0;
+
+    while (iter < m_currentCap) {
+        if (m_currentTable[index]) {
+            if (m_currentTable[index]->m_name == name && m_currentTable[index]->m_serial == serial) {
+                return *m_currentTable[index];
+            }
+            else if (m_currProbing == LINEAR) {
                 index = (index + 1) % m_currentCap;
             }
-
-            iter++;
-        }
-    }
-    else if (m_currProbing == QUADRATIC) {
-        int i = 0; // quadratic multiplier 
-        bool flag = true; // controls while loop
-
-        int iter = 0;
-        // loops through the list until it reaches the right index
-        while (flag && iter < m_currentCap) {
-            // if m_currentTable[index] exists
-            if (m_currentTable[index]) {
-                // if a patient exists, it checks the serial
-                if (m_currentTable[index]->getSerial() == serial) {
-                    flag = false;
-                } 
-                
-                else {
-                    index = (index + (i*i)) % m_currentCap;
-                    i++;
-                }
+            else if (m_currProbing == QUADRATIC) {
+                index = (index + (iter * iter)) % m_currentCap;
             }
-            // else patient at index doesnt exists and we iterate
-            else {
-                index = (index + (i*i)) % m_currentCap;
-                i++;
+            else if (m_currProbing == DOUBLEHASH) {
+                index = ((m_hash(name) % m_currentCap) + iter * (11 - (m_hash(name) % 11))) % m_currentCap;
             }
-            iter++;
         }
+        else {
+            Patient emptyPatient = Patient();
+            return emptyPatient;
+        }
+        iter++;
     }
+
+    // Doesnt exist
+    Patient emptyPatient = Patient();
+    return emptyPatient;
     
-    else if (m_currProbing == DOUBLEHASH) {
-        int i = 0;
-        bool flag = true;
-        int iter = 0;
-        while (flag && iter < m_currentCap) {
-            // if m_currentTable[index] exists
-            if (m_currentTable[index]) {
-                // if a patient exists, it checks the serial
-                if (m_currentTable[index]->getSerial() == serial) {
-                    flag = false;
-                } 
-                
-                else {
-                    int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
-                    i++;
-                    index = newIndex;
-                }
-            }
-            // else patient at index doesnt exists and we iterate
-            else {
-                int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
-                i++;
-                index = newIndex;
-            }
-            iter++;
-        }
-
-
-    }
-    
-
-    if (index >= m_currentCap) {
-        Patient empty;
-        return empty;
-    }
-
-    return *m_currentTable[index];
 }
 
+// updateSerialNumber(Patient patient, int serial)
+// Changes the serial of the patient
 bool VacDB::updateSerialNumber(Patient patient, int serial){
-    unsigned int index = m_hash(patient.getKey()) % m_currentCap;
-    
-    
-    // else we have to continue searching through the hash table
-    if (m_currProbing == LINEAR) {
-        bool flag = true;
-        int iter = 0;
-        while (flag && iter < m_currentCap) {
-            if (m_currentTable[index]) {
-                if (*m_currentTable[index] == patient) {
-                    flag = false;
-                    m_currentTable[index]->setSerial(serial);
-                }
-                else {
-                    index = (index + 1) % m_currentCap;
-                }
-            } 
-            else {
+    unsigned int index = m_hash(patient.m_name) % m_currentCap;
+    int iter = 0;
+
+    // Iterates 
+    while (iter < m_currentCap) {
+        if (m_currentTable[index]) {
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) {
+                
+                m_currentTable[index]->setSerial(serial);
+                return true;
+            }
+            else if (m_currProbing == LINEAR) {
                 index = (index + 1) % m_currentCap;
             }
-
-            iter++;
-            
-        }
-        if (iter >= m_currentCap) return false;
-    }
-    else if (m_currProbing == QUADRATIC) {
-        int i = 0; // quadratic multiplier 
-        bool flag = true; // controls while loop
-
-        int iter = 0;
-        // loops through the list until it reaches the right index
-        while (flag && iter < m_currentCap) {
-            // if m_currentTable[index] exists
-            if (m_currentTable[index]) {
-                // if a patient exists, it checks the serial
-                if (*m_currentTable[index] == patient) {
-                    flag = false;
-                    m_currentTable[index]->setSerial(serial);
-                } 
-                
-                else {
-                    index = (index + (i*i)) % m_currentCap;
-                    i++;
-                }
+            else if (m_currProbing == QUADRATIC) {
+                index = (index + (iter * iter)) % m_currentCap;
             }
-            // else patient at index doesnt exists and we iterate
-            else {
-                index = (index + (i*i)) % m_currentCap;
-                i++;
+            else if (m_currProbing == DOUBLEHASH) {
+                index = ((m_hash(patient.getKey()) % m_currentCap) + iter * (11 - (m_hash(patient.getKey()) % 11))) % m_currentCap;
             }
-            iter++;
         }
-
-        if (iter >= m_currentCap) return false;
+        else {
+            return false;
+        }
+        iter++;
     }
+
+    // Doesnt exist
+    return false;
     
-    else if (m_currProbing == DOUBLEHASH) {
-        int i = 0;
-        bool flag = true;
-        int iter = 0;
-        while (flag && iter < m_currentCap) {
-            // if m_currentTable[index] exists
-            if (m_currentTable[index]) {
-                // if a patient exists, it checks the serial
-                if (*m_currentTable[index] == patient) {
-                    flag = false;
-
-                    m_currentTable[index]->setSerial(serial);
-                } 
-                
-                else {
-                    int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
-                    i++;
-                    index = newIndex;
-                }
-            }
-            // else patient at index doesnt exists and we iterate
-            else {
-                int newIndex = ((m_hash(m_currentTable[index]->m_name) % m_currentCap) + i * (11 - (m_hash(m_currentTable[index]->m_name)) % 11)) % m_currentSize;
-                i++;
-                index = newIndex;
-            }
-            iter++;
-        }
-
-        if (iter >= m_currentCap) return false;
-    }
-    
-
-    return true;
 }
 
 // lambda()

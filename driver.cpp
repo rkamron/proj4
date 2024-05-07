@@ -132,10 +132,10 @@ int main(){
     Random RndID(MINID,MAXID);
     Random RndName(0,5);// selects one from the namesDB array
     Random RndQuantity(0,50);
-    VacDB vacdb(MINPRIME, hashCode, QUADRATIC);
+    VacDB vacdb(MINPRIME, hashCode, DOUBLEHASH);
     bool result = true;
     
-    for (int i = 0; i < 70; i++){
+    for (int i = 0; i < 40; i++){
         // generating random data
         Patient dataObj = Patient(namesDB[RndName.getRandNum()], RndID.getRandNum(), true);
         cout << "Inserting: " << dataObj.getKey() << dataObj.getSerial() << "\n";

@@ -175,6 +175,11 @@ int main(){
 
     bool insertLinearNoncoliding = true;
 
+    bool getPatientError = true;
+    bool getPatientNormal = true;
+    bool getPatientNormalColliding = true;
+    bool removeNormal = true;
+
     cout << "TESTING INSERTS\n";
     {
         cout << "LINEAR INSERTS\n";
@@ -185,9 +190,109 @@ int main(){
         
     }
 
-    cout << "########## TEST RESULTS ##########\n"
-        << "# Insert Tests:\t" << boolPrint(insertLinearNoncoliding) << "\n"
-        << "##################################\n";
+    cout << "TESTING getPatient\n";
+    {
+        cout << "getPatient Error Case\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
+        Patient empty = Patient();
+        
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+
+        getPatientError = (empty == db.getPatient("alexander", 5000));
+    }
+
+    {
+        cout << "getPatient Normal Case, with non-coliding keys\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
+        
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+
+        getPatientNormal = getPatientNormal && (data1 == db.getPatient("john", 2500));
+        getPatientNormal = getPatientNormal && (data2 == db.getPatient("celina", 3500));
+        getPatientNormal = getPatientNormal && (data3 == db.getPatient("serina", 2000));
+        getPatientNormal = getPatientNormal && (data4 == db.getPatient("mike", 3000));
+    }
+
+    {
+        cout << "getPatient Normal Case, with colliding keys\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2501, true);
+        Patient data2 = Patient("john", 2502, true);
+        Patient data3 = Patient("john", 2503, true);
+        Patient data4 = Patient("john", 2504, true);
+        Patient data5 = Patient("john", 2505, true);
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+        db.insert(data5);
+
+        getPatientNormalColliding = getPatientNormalColliding && (data1 == db.getPatient("john", 2501));
+        getPatientNormalColliding = getPatientNormalColliding && (data2 == db.getPatient("john", 2502));
+        getPatientNormalColliding = getPatientNormalColliding && (data3 == db.getPatient("john", 2503));
+        getPatientNormalColliding = getPatientNormalColliding && (data4 == db.getPatient("john", 2504));
+        getPatientNormalColliding = getPatientNormalColliding && (data5 == db.getPatient("john", 2505));
+    }
+
+    cout << "TESTING REMOVE\n";
+    {
+        cout << "remove Normal Case, with non-colliding keys\n";
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
+        Patient data5 = Patient("serina", 2001, true);
+        Patient data6 = Patient("mike", 3001, true);
+        Patient data7 = Patient("serina", 2002, true);
+        Patient data8 = Patient("mike", 3002, true);
+        
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+        db.insert(data5);
+        db.insert(data6);
+        db.insert(data7);
+        db.insert(data8);
+
+        removeNormal = removeNormal && (db.remove(data1));
+        removeNormal = removeNormal && (db.remove(data2));
+        removeNormal = removeNormal && (db.remove(data3));
+        removeNormal = removeNormal && (db.remove(data4));
+        removeNormal = removeNormal && (db.remove(data5));
+        removeNormal = removeNormal && (db.remove(data6));
+        removeNormal = removeNormal && (db.remove(data7));
+
+
+        db.dump();
+    }
+            
+    cout << "#################### TEST RESULTS ####################\n"
+        << "# Insert Tests:\t\t\t\t\t" << boolPrint(insertLinearNoncoliding) << "\n"
+        << "# getPatient() Error Case:\t\t\t" << boolPrint(getPatientError) << "\n"
+        << "# getPatient() Normal Case, non-colliding:\t" << boolPrint(getPatientNormal) << "\n"
+        << "# getPatient() Error Case, colliding:\t\t" << boolPrint(getPatientNormalColliding) << "\n"
+        << "# remove() Normal Case, non-colliding:\t\t" << boolPrint(removeNormal) << "\n"
+        << "######################################################\n";
     return 0;
 }
 
