@@ -161,8 +161,10 @@ class Tester{
 
 string namesDB[6] = {"john", "serina", "mike", "celina", "alexander", "jessica"};
 
+// boolPrint(bool cond)
+// Helper function to print test results as strings
 string boolPrint(bool cond) {
-    return (cond) ? "PASSED" : "FALSE";
+    return (cond) ? "PASSED #" : "FALSE #";
 }
 
 int main(){
@@ -172,9 +174,8 @@ int main(){
     Random RndQuantity(0,50);
     Tester test;
     
-
+    // bools that store the results of tests
     bool insertLinearNoncoliding = true;
-
     bool getPatientError = true;
     bool getPatientNormal = true;
     bool getPatientNormalColliding = true;
@@ -183,10 +184,11 @@ int main(){
     bool removeError = true;
     bool rehashInsertion = true;
     bool rehashRemove = true;
+    bool updateSerialNormal = true;
 
     cout << "TESTING INSERTS\n";
     {
-        cout << "LINEAR INSERTS\n";
+        cout << "Insert non-colliding\n";
         VacDB db(MINPRIME, hashCode, LINEAR);
         vector<Patient> dataList;
 
@@ -197,6 +199,9 @@ int main(){
     cout << "TESTING getPatient\n";
     {
         cout << "getPatient Error Case\n";
+        // getPatient Error Case, non-colliding
+        // Error case, when patient doesnt exist, it should output empty Patient
+
         VacDB db(MINPRIME, hashCode, LINEAR);
 
         Patient data1 = Patient("john", 2500, true);
@@ -205,16 +210,20 @@ int main(){
         Patient data4 = Patient("mike", 3000, true);
         Patient empty = Patient();
         
+        // insert patients
         db.insert(data1);
         db.insert(data2);
         db.insert(data3);
         db.insert(data4);
 
+        // test if getPatient outputs empty patient
         getPatientError = (empty == db.getPatient("alexander", 5000));
     }
 
     {
         cout << "getPatient Normal Case, with non-coliding keys\n";
+        // getPatient Normal Case, with non-colliding keys
+
         VacDB db(MINPRIME, hashCode, LINEAR);
 
         Patient data1 = Patient("john", 2500, true);
@@ -222,11 +231,13 @@ int main(){
         Patient data3 = Patient("serina", 2000, true);
         Patient data4 = Patient("mike", 3000, true);
         
+        // inserts patients
         db.insert(data1);
         db.insert(data2);
         db.insert(data3);
         db.insert(data4);
 
+        // tests if getPatient outputs correct patients
         getPatientNormal = getPatientNormal && (data1 == db.getPatient("john", 2500));
         getPatientNormal = getPatientNormal && (data2 == db.getPatient("celina", 3500));
         getPatientNormal = getPatientNormal && (data3 == db.getPatient("serina", 2000));
@@ -235,6 +246,8 @@ int main(){
 
     {
         cout << "getPatient Normal Case, with colliding keys\n";
+        // getPatient Normal Case, with colliding keys
+
         VacDB db(MINPRIME, hashCode, LINEAR);
 
         Patient data1 = Patient("john", 2501, true);
@@ -242,17 +255,42 @@ int main(){
         Patient data3 = Patient("john", 2503, true);
         Patient data4 = Patient("john", 2504, true);
         Patient data5 = Patient("john", 2505, true);
+
+        // inserts patients
         db.insert(data1);
         db.insert(data2);
         db.insert(data3);
         db.insert(data4);
         db.insert(data5);
 
+        // tests if getPatient outputs the right patients
         getPatientNormalColliding = getPatientNormalColliding && (data1 == db.getPatient("john", 2501));
         getPatientNormalColliding = getPatientNormalColliding && (data2 == db.getPatient("john", 2502));
         getPatientNormalColliding = getPatientNormalColliding && (data3 == db.getPatient("john", 2503));
         getPatientNormalColliding = getPatientNormalColliding && (data4 == db.getPatient("john", 2504));
         getPatientNormalColliding = getPatientNormalColliding && (data5 == db.getPatient("john", 2505));
+    }
+
+    cout << "SERIAL UPDATE TESTS\n";
+    {
+        cout << "updateSerialNumber Normal Case\n";
+        // updateSerialNumber normal case
+
+        VacDB db(MINPRIME, hashCode, LINEAR);
+
+        Patient data1 = Patient("john", 2500, true);
+        Patient data2 = Patient("celina", 3500, true);
+        Patient data3 = Patient("serina", 2000, true);
+        Patient data4 = Patient("mike", 3000, true);
+        
+        // inserts patients
+        db.insert(data1);
+        db.insert(data2);
+        db.insert(data3);
+        db.insert(data4);
+
+        // tests if getPatient outputs the right patients
+        updateSerialNormal = updateSerialNormal && (db.updateSerialNumber(data1, 2501)); 
     }
 
     cout << "TESTING REMOVE\n";
@@ -265,11 +303,13 @@ int main(){
         Patient data3 = Patient("serina", 2000, true);
         Patient data4 = Patient("mike", 3000, true);
         
+        // inserts patients
         db.insert(data1);
         db.insert(data2);
         db.insert(data3);
         db.insert(data4);
 
+        // test if remove works 
         removeNormal = removeNormal && (db.remove(data1));
         removeNormal = removeNormal && (db.remove(data2));
         removeNormal = removeNormal && (db.remove(data3));
@@ -289,6 +329,7 @@ int main(){
         Patient data7 = Patient("serina", 2002, true);
         Patient data8 = Patient("mike", 3002, true);
         
+        // inserts data
         db.insert(data1);
         db.insert(data2);
         db.insert(data3);
@@ -298,6 +339,7 @@ int main(){
         db.insert(data7);
         db.insert(data8);
 
+        // tests remove()
         removeNormalColliding = removeNormalColliding && (db.remove(data1));
         removeNormalColliding = removeNormalColliding && (db.remove(data2));
         removeNormalColliding = removeNormalColliding && (db.remove(data3));
@@ -319,7 +361,9 @@ int main(){
         Patient data6 = Patient("mike", 3001, true);
         Patient data7 = Patient("serina", 2002, true);
         Patient data8 = Patient("mike", 3002, true);
-        Patient errorPatient = Patient();
+        Patient errorPatient = Patient(); // empty patient to remove
+
+        // inserts patients
         db.insert(data1);
         db.insert(data2);
         db.insert(data3);
@@ -329,6 +373,7 @@ int main(){
         db.insert(data7);
         db.insert(data8);
 
+        // tests if remove will output false on an empty patient
         removeError = removeError && !(db.remove(errorPatient));
     }
 
@@ -377,7 +422,7 @@ int main(){
 
 
             
-    cout << "#################### TEST RESULTS ####################\n"
+    cout << "##################### TEST RESULTS #####################\n"
         << "# Insert Tests:\t\t\t\t\t" << boolPrint(insertLinearNoncoliding) << "\n"
         << "# getPatient() Error Case:\t\t\t" << boolPrint(getPatientError) << "\n"
         << "# getPatient() Normal Case, non-colliding:\t" << boolPrint(getPatientNormal) << "\n"
@@ -388,7 +433,7 @@ int main(){
         << "# reHash() rehash triggered with insert:\t" << boolPrint(rehashInsertion) << "\n"
         << "# reHash() rehash triggered with remove:\t" << boolPrint(rehashRemove) << "\n"
 
-        << "######################################################\n";
+        << "########################################################\n";
     return 0;
 }
 

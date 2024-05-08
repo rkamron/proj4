@@ -100,43 +100,6 @@ bool VacDB::insert(Patient patient){
     }
     
     m_currentTable[index] = newPatient;
-
-
-    /*// if the index is free, we insert the newPatient
-    if (m_currentTable[index] == nullptr) {
-        m_currentTable[index] = newPatient;
-
-    }
-    // else there is a collision and it needs to probe
-    else {
-        if (m_currProbing == LINEAR) {
-            while (m_currentTable[index] != nullptr) {
-                index = (index +  1) % m_currentCap;
-            }
-            
-            m_currentTable[index] = newPatient;
-
-        }
-        else if (m_currProbing == QUADRATIC) {
-            int i = 0;
-            while (m_currentTable[index] != nullptr) {
-                index = (index + (i*i)) % m_currentCap;
-                i++;
-            }
-            m_currentTable[index] = newPatient;
-        }
-        else if (m_currProbing == DOUBLEHASH) {
-            int i = 0;
-            while (m_currentTable[index]) {
-                int newIndex = ((m_hash(patient.m_name) % m_currentCap) + i * (11 - (m_hash(patient.m_name) % 11))) % m_currentCap;
-                i++;
-                index = newIndex;
-            }
-
-            m_currentTable[index] = newPatient;
-
-        }
-    }*/
     m_currentSize++;
 
 
@@ -165,41 +128,38 @@ bool VacDB::reHashInsert(Patient patient){
 
     Patient *newPatient = new Patient(patient);
 
-    // if the index is free, we insert the newPatient
-    if (m_currentTable[index] == nullptr) {
-        m_currentTable[index] = newPatient;
-    }
-
-    // else there is a collision and it needs to probe
-    else {
+    // loop until m_currentTable[index] == nullptr 
+    int iter = 0; // keeps track of the times looped and used for probing
+    while (m_currentTable[index]) {
         if (m_currProbing == LINEAR) {
-            while (m_currentTable[index] != nullptr) {
-                index = (index +  1) % m_currentCap;
-            }
             
-            m_currentTable[index] = newPatient;
+            // tests if the patient is already in the hash table
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) return false;
+            
+            index = (index + 1) % m_currentCap;
 
         }
         else if (m_currProbing == QUADRATIC) {
-            int i = 0;
-            while (m_currentTable[index] != nullptr) {
-                index = (index + (i*i)) % m_currentCap;
-                i++;
-            }
-            m_currentTable[index] = newPatient;
+
+            // tests if the patient is already in the hash table
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) return false;
+            
+            index = (index + (iter*iter)) % m_currentCap;
+
         }
         else if (m_currProbing == DOUBLEHASH) {
-            int i = 0;
-            while (m_currentTable[index]) {
-                int newIndex = ((m_hash(patient.m_name) % m_currentCap) + i * (11 - (m_hash(patient.m_name) % 11))) % m_currentCap;
-                i++;
-                index = newIndex;
-            }
 
-            m_currentTable[index] = newPatient;
+            // tests if the patient is already in the hash table
+            if (m_currentTable[index]->getKey() == patient.getKey() && m_currentTable[index]->getSerial() == patient.getSerial()) return false;
+            
+            index = ((m_hash(patient.m_name) % m_currentCap) + iter * (11 - (m_hash(patient.m_name) % 11))) % m_currentCap;
 
         }
+        
+        iter++;
     }
+    
+    m_currentTable[index] = newPatient;
     m_currentSize++;
 
     return true;
